@@ -1,0 +1,125 @@
+<!-- id implementación: AKfycbwpYZWfrzucC9BP9tMVB96UwHgdiGxryokylcj3HkUj_XdeuMCQF9xwQ09QHc1MOnyCyg-->
+<!-- url: https://script.google.com/macros/s/AKfycbwpYZWfrzucC9BP9tMVB96UwHgdiGxryokylcj3HkUj_XdeuMCQF9xwQ09QHc1MOnyCyg/exec-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha de Equipo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 p-4 pb-12 font-sans">
+
+  <div class="max-w-md mx-auto space-y-4">
+    <!-- Header del Equipo -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 text-center">
+      <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">Activo en Planta</span>
+      <h1 id="tag-equipo" class="text-3xl font-extrabold text-blue-600 mt-1">Cargando...</h1>
+    </div>
+
+    <!-- Acciones Rápidas (Tally) -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+      <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Acciones en Campo</h2>
+      
+      <!-- Botón Cerrar OTM Semanal -->
+      <a id="btn-cerrar-otm" href="#" target="_blank" 
+         class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl shadow transition">
+        🟢 Cerrar OTM Programada
+      </a>
+
+      <!-- Botón Crear Emergencia -->
+      <a id="btn-crear-aviso" href="#" target="_blank" 
+         class="block w-full text-center bg-rose-600 hover:bg-rose-700 text-white font-medium py-3 rounded-xl shadow transition">
+        🔴 Crear Aviso
+      </a>
+
+      <!-- Botón Cerrar Emergencia -->
+      <a id="btn-cerrar-aviso" href="https://tally.so/r/1AdZ9W" target="_blank" 
+         class="block w-full text-center bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 rounded-xl shadow transition">
+        🟡 Cerrar Aviso
+      </a>
+    </div>
+
+    <!-- OTM de la Semana -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">OTM Programada (Esta Semana)</h2>
+      <div id="otm-programada" class="p-3 bg-slate-50 rounded-lg border border-slate-100 text-sm">
+        Buscando programación...
+      </div>
+    </div>
+
+    <!-- Historial Cerrado -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+      <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Historial Reciente (Completados)</h2>
+      <div id="lista-historial" class="space-y-2 text-sm text-slate-600">
+        Cargando historial...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwpYZWfrzucC9BP9tMVB96UwHgdiGxryokylcj3HkUj_XdeuMCQF9xwQ09QHc1MOnyCyg/exec";
+    
+    // URLs base de tus formularios en Tally
+    const TALLY_CERRAR_OTM = "https://tally.so/r/3x9K2r";
+    const TALLY_CREAR_AVISO = "https://tally.so/r/1AdZ9W";
+    const TALLY_CERRAR_AVISO = "https://tally.so/r/68xbaP";
+
+    const params = new URLSearchParams(window.location.search);
+    const idEquipo = params.get('id') || 'SIN-ID';
+
+    document.getElementById('tag-equipo').innerText = idEquipo;
+
+    // Pre-llenar enlaces con el ID del equipo
+    document.getElementById('btn-crear-aviso').href = `${TALLY_CREAR_AVISO}?equipo=${encodeURIComponent(idEquipo)}`;
+    document.getElementById('btn-cerrar-aviso').href = `${TALLY_CERRAR_AVISO}?equipo=${encodeURIComponent(idEquipo)}`;
+
+    fetch(`${URL_APPS_SCRIPT}?id=${encodeURIComponent(idEquipo)}`)
+      .then(res => res.json())
+      .then(data => {
+        // Render OTM Pendiente
+        const contOtm = document.getElementById('otm-programada');
+        const btnOtm = document.getElementById('btn-cerrar-otm');
+        
+        if (data.otmActual) {
+          contOtm.innerHTML = `
+            <p class="font-bold text-slate-800">OTM #${data.otmActual.otm}</p>
+            <p class="text-slate-600">${data.otmActual.actividad}</p>
+            <span class="inline-block mt-2 px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded font-medium">Pendiente</span>
+          `;
+          btnOtm.href = `${TALLY_CERRAR_OTM}?equipo=${encodeURIComponent(idEquipo)}&otm=${encodeURIComponent(data.otmActual.otm)}`;
+        } else {
+          contOtm.innerHTML = `<p class="text-slate-500 italic">No hay OTMs pendientes para esta semana.</p>`;
+          btnOtm.classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        // Render Historial
+        const contHistorial = document.getElementById('lista-historial');
+        let htmlHistorial = '';
+
+        if (data.historialOtms && data.historialOtms.length > 0) {
+          data.historialOtms.forEach(item => {
+            htmlHistorial += `<div class="p-2 border-b border-slate-100">
+              <span class="font-medium text-slate-700">OTM #${item.otm}:</span> ${item.actividad} 
+              <span class="text-xs text-slate-400 block">${item.fecha}</span>
+            </div>`;
+          });
+        }
+
+        if (data.historialAvisos && data.historialAvisos.length > 0) {
+          data.historialAvisos.forEach(item => {
+            htmlHistorial += `<div class="p-2 border-b border-slate-100">
+              <span class="font-medium text-rose-700">Aviso #${item.idAviso}:</span> ${item.detalle} 
+              <span class="text-xs text-slate-400 block">${item.fecha}</span>
+            </div>`;
+          });
+        }
+
+        contHistorial.innerHTML = htmlHistorial || '<p class="text-slate-400 italic">Sin registros previos.</p>';
+      })
+      .catch(err => {
+        document.getElementById('otm-programada').innerText = 'Error al cargar datos.';
+      });
+  </script>
+</body>
+</html>
